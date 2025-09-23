@@ -66,698 +66,702 @@
     <div id="root" class="min-h-screen"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo, memo } = React;
+        // FIX: Wrap the entire application in a DOMContentLoaded listener
+        // This ensures all scripts (React, Babel) are loaded and the DOM is fully ready before the app tries to render.
+        document.addEventListener('DOMContentLoaded', function() {
+            const { useState, useEffect, useCallback, useMemo, memo } = React;
 
-        // --- Optimized Icon Component --- //
-        const Icon = memo(({ name, className = "w-6 h-6" }) => {
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            }, []); 
-            return <i data-lucide={name} className={className}></i>;
-        });
-
-        // --- Main App Component --- //
-        const App = () => {
-            // State Management
-            const [streakStart, setStreakStart] = useState(null);
-            const [timeElapsed, setTimeElapsed] = useState({ d: 0, h: 0, m: 0, s: 0 });
-            const [yourWhy, setYourWhy] = useState("");
-            const [commitments, setCommitments] = useState([
-                { id: 1, text: "Morning Mindfulness (5 mins)", done: false },
-                { id: 2, text: "Physical Activity (15 mins)", done: false },
-                { id: 3, text: "Read 10 Pages", done: false },
-                { id: 4, text: "Evening Journal Entry", done: false },
-            ]);
-            const [affirmation, setAffirmation] = useState("");
-            const [journalEntries, setJournalEntries] = useState([]);
-            const [relapseLogs, setRelapseLogs] = useState([]);
-            
-            const [activeView, setActiveView] = useState('dashboard');
-            const [showOnboarding, setShowOnboarding] = useState(false);
-            const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [showBreathingTool, setShowBreathingTool] = useState(false);
-            const [showDataModal, setShowDataModal] = useState(false);
-            const [showDisclaimer, setShowDisclaimer] = useState(false);
-            const [showAiModal, setShowAiModal] = useState({ show: false, title: '', content: '' });
-
-            const [notification, setNotification] = useState(null);
-            const [isAiLoading, setIsAiLoading] = useState(false);
-            const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-            // --- Simulated AI Features (No API key needed) --- //
-
-            const simulateAiResponse = (callback) => {
-                setIsAiLoading(true);
-                setTimeout(() => {
-                    callback();
-                    setIsAiLoading(false);
-                }, 1000); // Simulate 1 second of "thinking"
-            };
-
-            const handleGenerateAffirmation = () => {
-                const affirmations = [
-                    "I am the architect of my habits and the master of my focus.",
-                    "Every moment is a new opportunity to choose my path.",
-                    "I have the strength to overcome any challenge that comes my way.",
-                    "My discipline is a reflection of my commitment to myself.",
-                    "I am in complete control of my actions and my destiny.",
-                    "I choose progress over perfection, one step at a time.",
-                    "My potential is limitless, and my focus is unbreakable."
-                ];
-                simulateAiResponse(() => {
-                    const newAffirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
-                    setAffirmation(newAffirmation);
-                    localStorage.setItem('momentum_affirmation', newAffirmation);
-                });
-            };
-
-            const handleAnalyzeJournal = () => {
-                if (journalEntries.length < 2) {
-                    setNotification({ message: "Need at least 2 journal entries to analyze.", type: 'error' });
-                    return;
-                }
-                const analysis = "Based on your recent entries, a pattern of overcoming challenges with resilience is emerging. Your victories, no matter how small, are building significant momentum.\n\nA helpful tip for today: Proactively schedule a 10-minute break for a positive activity you enjoy. This can be a powerful way to manage energy and maintain focus before challenges arise. Keep documenting your journey!";
-                simulateAiResponse(() => {
-                    setShowAiModal({ show: true, title: "✨ Your Journal Analysis", content: analysis });
-                });
-            };
-
-            const handleReframeUrge = () => {
-                const reframingStatements = [
-                    "This feeling is a temporary wave of sensation, not a command. Observe it without judgment, and let it pass. You are the rock, and this feeling is just the water flowing around you. Your long-term goals are more important than this fleeting moment.",
-                    "Acknowledge this urge as a test of your growing strength. Every time you resist, you are reinforcing the person you want to become. This feeling will subside. Breathe deeply and reconnect with your 'Why'. You are in control.",
-                    "This urge is an echo of an old habit, not a reflection of your true self now. You have the power to create a new response. Stand up, change your environment for five minutes, and prove to yourself that you are the one who decides what's next."
-                ];
-                 simulateAiResponse(() => {
-                    const reframingText = reframingStatements[Math.floor(Math.random() * reframingStatements.length)];
-                    setShowAiModal({ show: true, title: "✨ A Moment to Reframe", content: reframingText });
-                });
-            };
-
-
-            // --- Data Persistence (localStorage) --- //
-            useEffect(() => {
-                try {
-                    const data = {
-                        streakStart: localStorage.getItem('momentum_streakStart'),
-                        yourWhy: localStorage.getItem('momentum_yourWhy') || "To build self-discipline and mental clarity.",
-                        affirmation: localStorage.getItem('momentum_affirmation') || "I am in control of my actions and my destiny.",
-                        journalEntries: JSON.parse(localStorage.getItem('momentum_journalEntries') || '[]'),
-                        relapseLogs: JSON.parse(localStorage.getItem('momentum_relapseLogs') || '[]'),
-                    };
-                    
-                    if (data.streakStart) {
-                        setStreakStart(new Date(parseInt(data.streakStart)));
-                    } else {
-                        setShowOnboarding(true);
+            // --- Optimized Icon Component --- //
+            const Icon = memo(({ name, className = "w-6 h-6" }) => {
+                useEffect(() => {
+                    if (window.lucide) {
+                        window.lucide.createIcons();
                     }
-                    
-                    setYourWhy(data.yourWhy);
-                    setAffirmation(data.affirmation);
-                    setJournalEntries(data.journalEntries);
-                    setRelapseLogs(data.relapseLogs);
-                    
-                    const lastCommitmentDate = localStorage.getItem('momentum_commitmentDate');
-                    const today = new Date().toDateString();
-                    const storedCommitments = localStorage.getItem('momentum_commitments');
-                    if (lastCommitmentDate === today && storedCommitments) {
-                        setCommitments(JSON.parse(storedCommitments));
-                    } else {
-                        localStorage.setItem('momentum_commitmentDate', today);
-                        const resetCommitments = commitments.map(c => ({...c, done: false}));
-                        localStorage.setItem('momentum_commitments', JSON.stringify(resetCommitments));
-                        setCommitments(resetCommitments);
+                }, []); 
+                return <i data-lucide={name} className={className}></i>;
+            });
+
+            // --- Main App Component --- //
+            const App = () => {
+                // State Management
+                const [streakStart, setStreakStart] = useState(null);
+                const [timeElapsed, setTimeElapsed] = useState({ d: 0, h: 0, m: 0, s: 0 });
+                const [yourWhy, setYourWhy] = useState("");
+                const [commitments, setCommitments] = useState([
+                    { id: 1, text: "Morning Mindfulness (5 mins)", done: false },
+                    { id: 2, text: "Physical Activity (15 mins)", done: false },
+                    { id: 3, text: "Read 10 Pages", done: false },
+                    { id: 4, text: "Evening Journal Entry", done: false },
+                ]);
+                const [affirmation, setAffirmation] = useState("");
+                const [journalEntries, setJournalEntries] = useState([]);
+                const [relapseLogs, setRelapseLogs] = useState([]);
+                
+                const [activeView, setActiveView] = useState('dashboard');
+                const [showOnboarding, setShowOnboarding] = useState(false);
+                const [showResetConfirm, setShowResetConfirm] = useState(false);
+                const [showBreathingTool, setShowBreathingTool] = useState(false);
+                const [showDataModal, setShowDataModal] = useState(false);
+                const [showDisclaimer, setShowDisclaimer] = useState(false);
+                const [showAiModal, setShowAiModal] = useState({ show: false, title: '', content: '' });
+
+                const [notification, setNotification] = useState(null);
+                const [isAiLoading, setIsAiLoading] = useState(false);
+                const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+                // --- Simulated AI Features (No API key needed) --- //
+
+                const simulateAiResponse = (callback) => {
+                    setIsAiLoading(true);
+                    setTimeout(() => {
+                        callback();
+                        setIsAiLoading(false);
+                    }, 1000); // Simulate 1 second of "thinking"
+                };
+
+                const handleGenerateAffirmation = () => {
+                    const affirmations = [
+                        "I am the architect of my habits and the master of my focus.",
+                        "Every moment is a new opportunity to choose my path.",
+                        "I have the strength to overcome any challenge that comes my way.",
+                        "My discipline is a reflection of my commitment to myself.",
+                        "I am in complete control of my actions and my destiny.",
+                        "I choose progress over perfection, one step at a time.",
+                        "My potential is limitless, and my focus is unbreakable."
+                    ];
+                    simulateAiResponse(() => {
+                        const newAffirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
+                        setAffirmation(newAffirmation);
+                        localStorage.setItem('momentum_affirmation', newAffirmation);
+                    });
+                };
+
+                const handleAnalyzeJournal = () => {
+                    if (journalEntries.length < 2) {
+                        setNotification({ message: "Need at least 2 journal entries to analyze.", type: 'error' });
+                        return;
                     }
-                } catch (error) {
-                    console.error("Failed to load data from localStorage:", error);
-                    setNotification({ message: "Could not load your data. It might be corrupted.", type: 'error'});
-                } finally {
-                    setIsDataLoaded(true); // Mark data as loaded
-                }
-            }, []);
+                    const analysis = "Based on your recent entries, a pattern of overcoming challenges with resilience is emerging. Your victories, no matter how small, are building significant momentum.\n\nA helpful tip for today: Proactively schedule a 10-minute break for a positive activity you enjoy. This can be a powerful way to manage energy and maintain focus before challenges arise. Keep documenting your journey!";
+                    simulateAiResponse(() => {
+                        setShowAiModal({ show: true, title: "✨ Your Journal Analysis", content: analysis });
+                    });
+                };
 
-            // --- Streak Calculation --- //
-            useEffect(() => {
-                if (!streakStart) return;
-                const timer = setInterval(() => {
-                    const now = new Date();
-                    const diff = now.getTime() - streakStart.getTime();
+                const handleReframeUrge = () => {
+                    const reframingStatements = [
+                        "This feeling is a temporary wave of sensation, not a command. Observe it without judgment, and let it pass. You are the rock, and this feeling is just the water flowing around you. Your long-term goals are more important than this fleeting moment.",
+                        "Acknowledge this urge as a test of your growing strength. Every time you resist, you are reinforcing the person you want to become. This feeling will subside. Breathe deeply and reconnect with your 'Why'. You are in control.",
+                        "This urge is an echo of an old habit, not a reflection of your true self now. You have the power to create a new response. Stand up, change your environment for five minutes, and prove to yourself that you are the one who decides what's next."
+                    ];
+                    simulateAiResponse(() => {
+                        const reframingText = reframingStatements[Math.floor(Math.random() * reframingStatements.length)];
+                        setShowAiModal({ show: true, title: "✨ A Moment to Reframe", content: reframingText });
+                    });
+                };
 
-                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((diff % (1000 * 60)) / 1000);
-                    
-                    setTimeElapsed({ d, h, m, s });
-                }, 1000);
-                return () => clearInterval(timer);
-            }, [streakStart]);
 
-            // --- Handlers --- //
-            const handleStartStreak = () => {
-                const now = new Date();
-                setStreakStart(now);
-                localStorage.setItem('momentum_streakStart', now.getTime().toString());
-                setShowOnboarding(false);
-            };
-            
-            const handleResetStreak = () => {
-                const now = new Date();
-                setStreakStart(now);
-                localStorage.setItem('momentum_streakStart', now.getTime().toString());
-                setShowResetConfirm(false);
-            };
-
-            const handleWhyChange = (e) => {
-                setYourWhy(e.target.value);
-                localStorage.setItem('momentum_yourWhy', e.target.value);
-            };
-            
-            const handleAffirmationChange = (e) => {
-                setAffirmation(e.target.value);
-                localStorage.setItem('momentum_affirmation', e.target.value);
-            };
-            
-            const handleCommitmentToggle = (id) => {
-                const updated = commitments.map(c => c.id === id ? { ...c, done: !c.done } : c);
-                setCommitments(updated);
-                localStorage.setItem('momentum_commitments', JSON.stringify(updated));
-            };
-
-            const addJournalEntry = (entry) => {
-                const newEntries = [{ date: new Date().toISOString(), ...entry }, ...journalEntries];
-                setJournalEntries(newEntries);
-                localStorage.setItem('momentum_journalEntries', JSON.stringify(newEntries));
-            };
-
-            const addRelapseLog = (log) => {
-                const newLogs = [{ date: new Date().toISOString(), ...log }, ...relapseLogs];
-                setRelapseLogs(newLogs);
-                localStorage.setItem('momentum_relapseLogs', JSON.stringify(newLogs));
-                handleResetStreak();
-            };
-
-             const exportData = () => {
-                const data = {};
-                for (const key in localStorage) {
-                    if (key.startsWith('momentum_')) {
-                        data[key.replace('momentum_', '')] = localStorage.getItem(key);
-                    }
-                }
-                const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-                    JSON.stringify(data, null, 2)
-                )}`;
-                const link = document.createElement("a");
-                link.href = jsonString;
-                link.download = `momentum_dashboard_backup_${new Date().toISOString().slice(0,10)}.json`;
-                link.click();
-            };
-
-            const importData = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                const fileReader = new FileReader();
-                fileReader.readAsText(file, "UTF-8");
-                fileReader.onload = e => {
+                // --- Data Persistence (localStorage) --- //
+                useEffect(() => {
                     try {
-                        const data = JSON.parse(e.target.result);
-                        Object.keys(data).forEach(key => {
-                            if (data[key] !== null) {
-                                localStorage.setItem(`momentum_${key}`, data[key]);
-                            }
-                        });
-                        setNotification({ message: 'Data imported successfully! Reloading...', type: 'success' });
-                        setTimeout(() => window.location.reload(), 2000);
-                    } catch (error) {
-                        setNotification({ message: "Error importing data. Invalid file format.", type: 'error' });
-                        console.error("Import error:", error);
-                    }
-                };
-            };
-            
-            // --- UI Components --- //
-            const OnboardingModal = () => (
-                <div className="modal-backdrop">
-                    <div className="modal-content text-center">
-                        <Icon name="Rocket" className="w-16 h-16 mx-auto text-blue-500 mb-4" />
-                        <h2 className="text-3xl font-bold text-white mb-2">Welcome to Momentum</h2>
-                        <p className="text-gray-400 mb-6">Your journey to self-mastery starts now. Let's begin by setting your commitment.</p>
-                        <button onClick={handleStartStreak} className="btn btn-primary w-full text-lg">
-                            <Icon name="Play" className="inline w-5 h-5 mr-2" />
-                            Start My Journey
-                        </button>
-                    </div>
-                </div>
-            );
-            
-            const ResetConfirmModal = () => (
-                <div className="modal-backdrop">
-                    <div className="modal-content text-center">
-                        <Icon name="AlertTriangle" className="w-16 h-16 mx-auto text-yellow-500 mb-4" />
-                        <h2 className="text-3xl font-bold text-white mb-2">Are You Sure?</h2>
-                        <p className="text-gray-400 mb-6">Resetting your streak is a big step. It's okay to start over. The important thing is to learn and keep going. We recommend adding a log entry to understand the trigger.</p>
-                        <div className="flex justify-center gap-4">
-                            <button onClick={() => setShowResetConfirm(false)} className="btn btn-secondary flex-1">Cancel</button>
-                            <button onClick={() => { addRelapseLog({ trigger: 'Unknown', emotion: 'Unknown', strategy: 'N/A'}); setActiveView('tracker'); setShowResetConfirm(false); }} className="btn btn-primary flex-1">
-                                Add Log & Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-            
-            const DataManagementModal = () => (
-                <div className="modal-backdrop">
-                    <div className="modal-content">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-2xl font-bold text-white">Data Management</h2>
-                            <button onClick={() => setShowDataModal(false)} className="text-gray-400 hover:text-white">
-                                <Icon name="X" />
-                            </button>
-                        </div>
-                        <p className="text-gray-400 mb-6">Backup your progress or import an existing backup file. Your data is stored locally in your browser.</p>
-                        <div className="space-y-4">
-                            <button onClick={exportData} className="btn btn-primary w-full">
-                                <Icon name="Download" className="w-5 h-5 mr-2" />
-                                Export Backup
-                            </button>
-                            <div>
-                                <label htmlFor="import-file" className="btn btn-secondary w-full cursor-pointer">
-                                    <Icon name="Upload" className="w-5 h-5 mr-2" />
-                                    Import Backup
-                                </label>
-                                <input type="file" id="import-file" className="hidden" accept=".json" onChange={importData} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-            
-             const DisclaimerModal = () => (
-                <div className="modal-backdrop">
-                    <div className="modal-content">
-                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-2xl font-bold text-white flex items-center"><Icon name="HelpCircle" className="w-6 h-6 mr-2"/>Disclaimer</h2>
-                            <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-white">
-                                <Icon name="X" />
-                            </button>
-                        </div>
-                        <p className="text-gray-400 mb-4">This dashboard is a self-help tool. It is not a substitute for professional medical or psychological advice. AI-powered features are for encouragement and insight only, and may not always be accurate.</p>
-                        <p className="text-gray-400 mb-6">If you are struggling with compulsive behavior, please consult with a qualified healthcare professional.</p>
-                        <button onClick={() => setShowDisclaimer(false)} className="btn btn-primary w-full">I Understand</button>
-                    </div>
-                </div>
-            );
-
-            const NotificationModal = ({ message, type, onClose }) => {
-                useEffect(() => {
-                    const timer = setTimeout(onClose, 3000);
-                    return () => clearTimeout(timer);
-                }, [onClose]);
-
-                const isError = type === 'error';
-                return (
-                    <div className="fixed top-5 right-5 z-50">
-                        <div className={`flex items-center p-4 rounded-lg shadow-lg text-white ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
-                            <Icon name={isError ? 'AlertCircle' : 'CheckCircle'} className="w-6 h-6 mr-3"/>
-                            <span>{message}</span>
-                        </div>
-                    </div>
-                );
-            };
-            
-            const AiModal = ({ title, content, onClose }) => (
-                <div className="modal-backdrop">
-                    <div className="modal-content">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-2xl font-bold text-white">{title}</h2>
-                            <button onClick={onClose} className="text-gray-400 hover:text-white"><Icon name="X" /></button>
-                        </div>
-                        <div className="text-gray-300 whitespace-pre-wrap">{content}</div>
-                        <div className="mt-6 flex justify-end">
-                            <button onClick={onClose} className="btn btn-primary">Close</button>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            const BreathingTool = () => {
-                const [stage, setStage] = useState('Ready?');
-                const [isRunning, setIsRunning] = useState(false);
-
-                useEffect(() => {
-                    let timer;
-                    if(isRunning) {
-                        const sequence = ['Inhale...', 'Hold...', 'Exhale...', 'Hold...'];
-                        let currentStage = 0;
-                        const nextStage = () => {
-                            setStage(sequence[currentStage]);
-                            currentStage = (currentStage + 1) % 4;
-                            timer = setTimeout(nextStage, 4000);
+                        const data = {
+                            streakStart: localStorage.getItem('momentum_streakStart'),
+                            yourWhy: localStorage.getItem('momentum_yourWhy') || "To build self-discipline and mental clarity.",
+                            affirmation: localStorage.getItem('momentum_affirmation') || "I am in control of my actions and my destiny.",
+                            journalEntries: JSON.parse(localStorage.getItem('momentum_journalEntries') || '[]'),
+                            relapseLogs: JSON.parse(localStorage.getItem('momentum_relapseLogs') || '[]'),
+                        };
+                        
+                        if (data.streakStart) {
+                            setStreakStart(new Date(parseInt(data.streakStart)));
+                        } else {
+                            setShowOnboarding(true);
                         }
-                        nextStage();
+                        
+                        setYourWhy(data.yourWhy);
+                        setAffirmation(data.affirmation);
+                        setJournalEntries(data.journalEntries);
+                        setRelapseLogs(data.relapseLogs);
+                        
+                        const lastCommitmentDate = localStorage.getItem('momentum_commitmentDate');
+                        const today = new Date().toDateString();
+                        const storedCommitments = localStorage.getItem('momentum_commitments');
+                        if (lastCommitmentDate === today && storedCommitments) {
+                            setCommitments(JSON.parse(storedCommitments));
+                        } else {
+                            localStorage.setItem('momentum_commitmentDate', today);
+                            const resetCommitments = commitments.map(c => ({...c, done: false}));
+                            localStorage.setItem('momentum_commitments', JSON.stringify(resetCommitments));
+                            setCommitments(resetCommitments);
+                        }
+                    } catch (error) {
+                        console.error("Failed to load data from localStorage:", error);
+                        setNotification({ message: "Could not load your data. It might be corrupted.", type: 'error'});
+                    } finally {
+                        setIsDataLoaded(true); // Mark data as loaded
                     }
-                    return () => clearTimeout(timer);
-                }, [isRunning]);
+                }, []);
 
-                const startBreathing = () => { setIsRunning(true); };
-                const stopBreathing = () => { setIsRunning(false); setStage('Ready?'); }
+                // --- Streak Calculation --- //
+                useEffect(() => {
+                    if (!streakStart) return;
+                    const timer = setInterval(() => {
+                        const now = new Date();
+                        const diff = now.getTime() - streakStart.getTime();
 
-                return (
-                    <div className="modal-backdrop">
-                        <div className="modal-content text-center relative">
-                            <button onClick={() => {stopBreathing(); setShowBreathingTool(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-white">
-                                <Icon name="X" />
-                            </button>
-                            <h2 className="text-3xl font-bold text-white mb-4">Urge Surfer: Box Breathing</h2>
-                            <p className="text-gray-400 mb-8">Focus on your breath. This feeling is temporary. You are in control.</p>
-                            
-                            <div className="w-48 h-48 bg-blue-900/50 rounded-full mx-auto flex items-center justify-center transition-transform duration-[4000ms] ease-linear"
-                                style={{ transform: stage === 'Inhale...' || stage === 'Ready?' ? 'scale(1.2)' : 'scale(1)' }}>
-                                <p className="text-3xl font-bold text-white">{stage}</p>
-                            </div>
-                            
-                            <div className="mt-8">
-                                {!isRunning ? (
-                                    <button onClick={startBreathing} className="btn btn-primary w-full">Start</button>
-                                ) : (
-                                    <button onClick={stopBreathing} className="btn btn-secondary w-full">Stop</button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
+                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const s = Math.floor((diff % (1000 * 60)) / 1000);
+                        
+                        setTimeElapsed({ d, h, m, s });
+                    }, 1000);
+                    return () => clearInterval(timer);
+                }, [streakStart]);
 
-            const StreakCounter = () => (
-                <div className="text-center p-6 md:p-8">
-                    <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 flex justify-center items-center space-x-2 md:space-x-4">
-                        <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
-                            <span>{String(timeElapsed.d).padStart(2, '0')}</span>
-                            <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Days</span>
-                        </div>
-                        <span className="text-gray-500">:</span>
-                         <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
-                            <span>{String(timeElapsed.h).padStart(2, '0')}</span>
-                            <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Hours</span>
-                        </div>
-                        <span className="text-gray-500">:</span>
-                         <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
-                            <span>{String(timeElapsed.m).padStart(2, '0')}</span>
-                            <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Minutes</span>
-                        </div>
-                        <div className="hidden md:flex items-center space-x-2 md:space-x-4">
-                            <span className="text-gray-500">:</span>
-                            <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
-                                <span>{String(timeElapsed.s).padStart(2, '0')}</span>
-                                <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Seconds</span>
-                            </div>
-                        </div>
-                    </h1>
-                    <p className="text-gray-400">Your current streak of self-mastery.</p>
-                </div>
-            );
-
-            const DashboardView = () => (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="card"><StreakCounter /></div>
-                        <div className="card p-6">
-                            <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Target" className="w-5 h-5 mr-2 text-blue-500"/> Your "Why" - Your North Star</h3>
-                            <textarea value={yourWhy} onChange={handleWhyChange} className="w-full bg-gray-800 rounded-lg p-4 h-24 text-gray-300 focus:ring-2 focus:ring-blue-500 border-none"></textarea>
-                        </div>
-                         <div className="card p-6">
-                            <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="CheckSquare" className="w-5 h-5 mr-2 text-green-500"/> Today's Commitments</h3>
-                            <div className="space-y-3">
-                                {commitments.map(c => (
-                                    <label key={c.id} className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${c.done ? 'bg-green-500/10 text-gray-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                                        <input type="checkbox" checked={c.done} onChange={() => handleCommitmentToggle(c.id)} className="w-5 h-5 mr-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500" />
-                                        <span className={`${c.done ? 'line-through' : ''}`}>{c.text}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="space-y-6">
-                         <div className="card p-6">
-                             <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Shield" className="w-5 h-5 mr-2 text-yellow-500"/> Urge-Surfer Toolkit</h3>
-                            <div className="space-y-3">
-                                <button onClick={handleReframeUrge} disabled={isAiLoading} className="w-full text-left p-3 rounded-lg ai-btn transition-all">
-                                    <p className="font-semibold text-white">✨ Reframe My Urge</p>
-                                    <p className="text-sm text-indigo-200">Get instant help in a moment of weakness.</p>
-                                </button>
-                                <button onClick={() => setShowBreathingTool(true)} className="w-full text-left p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all">
-                                    <p className="font-semibold text-white">Box Breathing Exercise</p>
-                                    <p className="text-sm text-gray-400">Calm your nervous system in 2 minutes.</p>
-                                </button>
-                                <div className="p-3 bg-gray-800 rounded-lg">
-                                    <p className="font-semibold text-white mb-2">Pattern Interrupts</p>
-                                    <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
-                                        <li>Take a cold shower</li>
-                                        <li>Go for a walk (no phone)</li>
-                                        <li>Do 20 push-ups</li>
-                                        <li>Call a trusted friend</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="card p-6">
-                            <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Sparkles" className="w-5 h-5 mr-2 text-purple-500"/> Daily Affirmation</h3>
-                            <textarea value={affirmation} onChange={handleAffirmationChange} className="w-full bg-gray-800 rounded-lg p-4 h-24 text-gray-300 focus:ring-2 focus:ring-blue-500 border-none"></textarea>
-                             <button onClick={handleGenerateAffirmation} disabled={isAiLoading} className="btn ai-btn w-full mt-2">
-                                ✨ Generate New
-                            </button>
-                        </div>
-                        <div className="card p-6">
-                            <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Trophy" className="w-5 h-5 mr-2 text-orange-500"/> Achievements</h3>
-                             <Milestones currentDays={timeElapsed.d} />
-                        </div>
-                         <div className="card p-6 text-center">
-                            <h3 className="font-bold text-xl text-white mb-4">Feeling Overwhelmed?</h3>
-                            <p className="text-gray-400 mb-4">A reset is not a failure, it's a data point. Learn from it.</p>
-                            <button onClick={() => setShowResetConfirm(true)} className="btn btn-danger w-full">
-                                <Icon name="RefreshCcw" className="inline w-5 h-5 mr-2"/>Reset My Streak
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-            
-            const TrackerView = () => {
-                const [logData, setLogData] = useState({ trigger: 'Boredom', emotion: 'Anxious', strategy: '' });
-                const [journalData, setJournalData] = useState({ challenge: '', victory: '', rating: 5 });
-
-                const handleLogSubmit = (e) => {
-                    e.preventDefault();
-                    if (!logData.strategy) {
-                        setNotification({ message: 'Please enter a strategy for next time.', type: 'error' }); return;
-                    }
-                    addRelapseLog(logData);
-                    setLogData({ trigger: 'Boredom', emotion: 'Anxious', strategy: '' });
-                    setNotification({ message: 'Log added and streak reset.', type: 'success' });
-                };
-
-                const handleJournalSubmit = (e) => {
-                    e.preventDefault();
-                     if (!journalData.challenge && !journalData.victory) {
-                        setNotification({ message: 'Please fill out at least one journal field.', type: 'error' }); return;
-                    }
-                    addJournalEntry(journalData);
-                    setJournalData({ challenge: '', victory: '', rating: 5 });
-                    setNotification({ message: 'Journal entry saved.', type: 'success' });
+                // --- Handlers --- //
+                const handleStartStreak = () => {
+                    const now = new Date();
+                    setStreakStart(now);
+                    localStorage.setItem('momentum_streakStart', now.getTime().toString());
+                    setShowOnboarding(false);
                 };
                 
-                const triggerAnalysis = useMemo(() => {
-                    if (relapseLogs.length === 0) return null;
-                    const counts = relapseLogs.reduce((acc, log) => {
-                        acc[log.trigger] = (acc[log.trigger] || 0) + 1;
-                        return acc;
-                    }, {});
-                    const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-                    return { mostCommon: mostCommon[0], count: mostCommon[1], total: relapseLogs.length };
-                }, [relapseLogs]);
+                const handleResetStreak = () => {
+                    const now = new Date();
+                    setStreakStart(now);
+                    localStorage.setItem('momentum_streakStart', now.getTime().toString());
+                    setShowResetConfirm(false);
+                };
 
-                return (
-                    <div className="p-6 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-3xl font-bold text-white flex items-center"><Icon name="ClipboardList" className="w-8 h-8 mr-3 text-blue-500"/>Tracker & Journal</h2>
-                            <button onClick={handleAnalyzeJournal} disabled={isAiLoading || journalEntries.length < 2} className="btn ai-btn disabled:opacity-50 disabled:cursor-not-allowed">
-                                ✨ Analyze My Journal
+                const handleWhyChange = (e) => {
+                    setYourWhy(e.target.value);
+                    localStorage.setItem('momentum_yourWhy', e.target.value);
+                };
+                
+                const handleAffirmationChange = (e) => {
+                    setAffirmation(e.target.value);
+                    localStorage.setItem('momentum_affirmation', e.target.value);
+                };
+                
+                const handleCommitmentToggle = (id) => {
+                    const updated = commitments.map(c => c.id === id ? { ...c, done: !c.done } : c);
+                    setCommitments(updated);
+                    localStorage.setItem('momentum_commitments', JSON.stringify(updated));
+                };
+
+                const addJournalEntry = (entry) => {
+                    const newEntries = [{ date: new Date().toISOString(), ...entry }, ...journalEntries];
+                    setJournalEntries(newEntries);
+                    localStorage.setItem('momentum_journalEntries', JSON.stringify(newEntries));
+                };
+
+                const addRelapseLog = (log) => {
+                    const newLogs = [{ date: new Date().toISOString(), ...log }, ...relapseLogs];
+                    setRelapseLogs(newLogs);
+                    localStorage.setItem('momentum_relapseLogs', JSON.stringify(newLogs));
+                    handleResetStreak();
+                };
+
+                const exportData = () => {
+                    const data = {};
+                    for (const key in localStorage) {
+                        if (key.startsWith('momentum_')) {
+                            data[key.replace('momentum_', '')] = localStorage.getItem(key);
+                        }
+                    }
+                    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+                        JSON.stringify(data, null, 2)
+                    )}`;
+                    const link = document.createElement("a");
+                    link.href = jsonString;
+                    link.download = `momentum_dashboard_backup_${new Date().toISOString().slice(0,10)}.json`;
+                    link.click();
+                };
+
+                const importData = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const fileReader = new FileReader();
+                    fileReader.readAsText(file, "UTF-8");
+                    fileReader.onload = e => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            Object.keys(data).forEach(key => {
+                                if (data[key] !== null) {
+                                    localStorage.setItem(`momentum_${key}`, data[key]);
+                                }
+                            });
+                            setNotification({ message: 'Data imported successfully! Reloading...', type: 'success' });
+                            setTimeout(() => window.location.reload(), 2000);
+                        } catch (error) {
+                            setNotification({ message: "Error importing data. Invalid file format.", type: 'error' });
+                            console.error("Import error:", error);
+                        }
+                    };
+                };
+                
+                // --- UI Components --- //
+                const OnboardingModal = () => (
+                    <div className="modal-backdrop">
+                        <div className="modal-content text-center">
+                            <Icon name="Rocket" className="w-16 h-16 mx-auto text-blue-500 mb-4" />
+                            <h2 className="text-3xl font-bold text-white mb-2">Welcome to Momentum</h2>
+                            <p className="text-gray-400 mb-6">Your journey to self-mastery starts now. Let's begin by setting your commitment.</p>
+                            <button onClick={handleStartStreak} className="btn btn-primary w-full text-lg">
+                                <Icon name="Play" className="inline w-5 h-5 mr-2" />
+                                Start My Journey
                             </button>
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="card p-6 space-y-4">
-                                <h3 className="font-bold text-xl text-white flex items-center"><Icon name="BookX" className="w-5 h-5 mr-2 text-red-500"/>Relapse Log: Data, Not Defeat</h3>
-                                <form onSubmit={handleLogSubmit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">Trigger</label>
-                                        <select value={logData.trigger} onChange={e => setLogData({...logData, trigger: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500">
-                                            <option>Boredom</option><option>Stress</option><option>Loneliness</option><option>Social Media</option><option>Tiredness</option><option>Other</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">Emotional State Before</label>
-                                         <select value={logData.emotion} onChange={e => setLogData({...logData, emotion: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500">
-                                            <option>Anxious</option><option>Sad</option><option>Angry</option><option>Empty</option><option>Happy/Excited</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">What can I do differently next time?</label>
-                                        <textarea required value={logData.strategy} onChange={e => setLogData({...logData, strategy: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 h-20 border-none focus:ring-2 focus:ring-blue-500"></textarea>
-                                    </div>
-                                    <button type="submit" className="btn btn-danger w-full">Log Relapse & Reset Streak</button>
-                                </form>
-                                 {triggerAnalysis && (
-                                    <div className="bg-gray-800/50 p-4 rounded-lg mt-4">
-                                        <h4 className="font-semibold text-white flex items-center"><Icon name="PieChart" className="w-4 h-4 mr-2" />Insight</h4>
-                                        <p className="text-sm text-gray-400">Your most common trigger is <span className="font-bold text-yellow-400">{triggerAnalysis.mostCommon}</span>, occurring in {triggerAnalysis.count} of {triggerAnalysis.total} logged relapses.</p>
-                                    </div>
-                                )}
-                            </div>
-                             <div className="card p-6 space-y-4">
-                                <h3 className="font-bold text-xl text-white flex items-center"><Icon name="BookOpen" className="w-5 h-5 mr-2 text-green-500"/>Daily Journal</h3>
-                                <form onSubmit={handleJournalSubmit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">What was my biggest challenge today?</label>
-                                        <input type="text" value={journalData.challenge} onChange={e => setJournalData({...journalData, challenge: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">What was a small victory?</label>
-                                        <input type="text" value={journalData.victory} onChange={e => setJournalData({...journalData, victory: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500" />
-                                    </div>
-                                     <div>
-                                        <label className="block text-sm font-medium text-gray-400 mb-1">Energy & Focus (1-10): <span className="font-bold text-white">{journalData.rating}</span></label>
-                                        <input type="range" min="1" max="10" value={journalData.rating} onChange={e => setJournalData({...journalData, rating: e.target.value})} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary w-full">Add Journal Entry</button>
-                                </form>
+                    </div>
+                );
+                
+                const ResetConfirmModal = () => (
+                    <div className="modal-backdrop">
+                        <div className="modal-content text-center">
+                            <Icon name="AlertTriangle" className="w-16 h-16 mx-auto text-yellow-500 mb-4" />
+                            <h2 className="text-3xl font-bold text-white mb-2">Are You Sure?</h2>
+                            <p className="text-gray-400 mb-6">Resetting your streak is a big step. It's okay to start over. The important thing is to learn and keep going. We recommend adding a log entry to understand the trigger.</p>
+                            <div className="flex justify-center gap-4">
+                                <button onClick={() => setShowResetConfirm(false)} className="btn btn-secondary flex-1">Cancel</button>
+                                <button onClick={() => { addRelapseLog({ trigger: 'Unknown', emotion: 'Unknown', strategy: 'N/A'}); setActiveView('tracker'); setShowResetConfirm(false); }} className="btn btn-primary flex-1">
+                                    Add Log & Reset
+                                </button>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="card p-6">
-                                <h3 className="font-bold text-xl text-white mb-4">Log History</h3>
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
-                                    {relapseLogs.length > 0 ? relapseLogs.map((log, i) => (
-                                        <div key={i} className="bg-gray-800 p-3 rounded-lg">
-                                            <p className="text-sm text-gray-500">{new Date(log.date).toLocaleString()}</p>
-                                            <p><span className="font-semibold">Trigger:</span> {log.trigger} | <span className="font-semibold">Emotion:</span> {log.emotion}</p>
-                                            <p className="text-sm text-gray-400 mt-1"><span className="font-semibold">Strategy:</span> {log.strategy}</p>
-                                        </div>
-                                    )) : <p className="text-gray-500">No logs yet.</p>}
-                                </div>
+                    </div>
+                );
+                
+                const DataManagementModal = () => (
+                    <div className="modal-backdrop">
+                        <div className="modal-content">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-white">Data Management</h2>
+                                <button onClick={() => setShowDataModal(false)} className="text-gray-400 hover:text-white">
+                                    <Icon name="X" />
+                                </button>
                             </div>
-                            <div className="card p-6">
-                                <h3 className="font-bold text-xl text-white mb-4">Journal History</h3>
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
-                                     {journalEntries.length > 0 ? journalEntries.map((entry, i) => (
-                                        <div key={i} className="bg-gray-800 p-3 rounded-lg">
-                                            <p className="text-sm text-gray-500">{new Date(entry.date).toLocaleString()}</p>
-                                            <p><span className="font-semibold">Challenge:</span> {entry.challenge}</p>
-                                            <p><span className="font-semibold">Victory:</span> {entry.victory}</p>
-                                            <p><span className="font-semibold">Rating:</span> {entry.rating}/10</p>
-                                        </div>
-                                    )) : <p className="text-gray-500">No entries yet.</p>}
+                            <p className="text-gray-400 mb-6">Backup your progress or import an existing backup file. Your data is stored locally in your browser.</p>
+                            <div className="space-y-4">
+                                <button onClick={exportData} className="btn btn-primary w-full">
+                                    <Icon name="Download" className="w-5 h-5 mr-2" />
+                                    Export Backup
+                                </button>
+                                <div>
+                                    <label htmlFor="import-file" className="btn btn-secondary w-full cursor-pointer">
+                                        <Icon name="Upload" className="w-5 h-5 mr-2" />
+                                        Import Backup
+                                    </label>
+                                    <input type="file" id="import-file" className="hidden" accept=".json" onChange={importData} />
                                 </div>
                             </div>
                         </div>
                     </div>
                 );
-            };
-            
-            const ArchitectView = () => (
-                 <div className="p-6 space-y-6">
-                    <h2 className="text-3xl font-bold text-white flex items-center"><Icon name="Construction" className="w-8 h-8 mr-3 text-yellow-500"/>Architect Hub</h2>
-                    <div className="card p-6">
-                        <p className="text-gray-400">This section is under construction. Future features will include a Habit Builder and Goal Setting module to help you proactively design your ideal life.</p>
+                
+                const DisclaimerModal = () => (
+                    <div className="modal-backdrop">
+                        <div className="modal-content">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-white flex items-center"><Icon name="HelpCircle" className="w-6 h-6 mr-2"/>Disclaimer</h2>
+                                <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-white">
+                                    <Icon name="X" />
+                                </button>
+                            </div>
+                            <p className="text-gray-400 mb-4">This dashboard is a self-help tool. It is not a substitute for professional medical or psychological advice. AI-powered features are for encouragement and insight only, and may not always be accurate.</p>
+                            <p className="text-gray-400 mb-6">If you are struggling with compulsive behavior, please consult with a qualified healthcare professional.</p>
+                            <button onClick={() => setShowDisclaimer(false)} className="btn btn-primary w-full">I Understand</button>
+                        </div>
                     </div>
-                 </div>
-            );
+                );
 
-            const Milestones = ({ currentDays }) => {
-                const milestones = [
-                    { day: 1, title: 'First Step', icon: 'Footprints' }, { day: 3, title: '3-Day Mark', icon: 'Mountain' },
-                    { day: 7, title: 'Week 1', icon: 'Calendar' }, { day: 14, title: '2 Weeks Strong', icon: 'Anchor' },
-                    { day: 30, title: '30 Days', icon: 'Medal' }, { day: 60, title: '60 Days', icon: 'Gem' },
-                    { day: 90, title: 'The Reboot', icon: 'Crown' },
-                ];
+                const NotificationModal = ({ message, type, onClose }) => {
+                    useEffect(() => {
+                        const timer = setTimeout(onClose, 3000);
+                        return () => clearTimeout(timer);
+                    }, [onClose]);
+
+                    const isError = type === 'error';
+                    return (
+                        <div className="fixed top-5 right-5 z-50">
+                            <div className={`flex items-center p-4 rounded-lg shadow-lg text-white ${isError ? 'bg-red-600' : 'bg-green-600'}`}>
+                                <Icon name={isError ? 'AlertCircle' : 'CheckCircle'} className="w-6 h-6 mr-3"/>
+                                <span>{message}</span>
+                            </div>
+                        </div>
+                    );
+                };
+                
+                const AiModal = ({ title, content, onClose }) => (
+                    <div className="modal-backdrop">
+                        <div className="modal-content">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-white">{title}</h2>
+                                <button onClick={onClose} className="text-gray-400 hover:text-white"><Icon name="X" /></button>
+                            </div>
+                            <div className="text-gray-300 whitespace-pre-wrap">{content}</div>
+                            <div className="mt-6 flex justify-end">
+                                <button onClick={onClose} className="btn btn-primary">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+                const BreathingTool = () => {
+                    const [stage, setStage] = useState('Ready?');
+                    const [isRunning, setIsRunning] = useState(false);
+
+                    useEffect(() => {
+                        let timer;
+                        if(isRunning) {
+                            const sequence = ['Inhale...', 'Hold...', 'Exhale...', 'Hold...'];
+                            let currentStage = 0;
+                            const nextStage = () => {
+                                setStage(sequence[currentStage]);
+                                currentStage = (currentStage + 1) % 4;
+                                timer = setTimeout(nextStage, 4000);
+                            }
+                            nextStage();
+                        }
+                        return () => clearTimeout(timer);
+                    }, [isRunning]);
+
+                    const startBreathing = () => { setIsRunning(true); };
+                    const stopBreathing = () => { setIsRunning(false); setStage('Ready?'); }
+
+                    return (
+                        <div className="modal-backdrop">
+                            <div className="modal-content text-center relative">
+                                <button onClick={() => {stopBreathing(); setShowBreathingTool(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                                    <Icon name="X" />
+                                </button>
+                                <h2 className="text-3xl font-bold text-white mb-4">Urge Surfer: Box Breathing</h2>
+                                <p className="text-gray-400 mb-8">Focus on your breath. This feeling is temporary. You are in control.</p>
+                                
+                                <div className="w-48 h-48 bg-blue-900/50 rounded-full mx-auto flex items-center justify-center transition-transform duration-[4000ms] ease-linear"
+                                    style={{ transform: stage === 'Inhale...' || stage === 'Ready?' ? 'scale(1.2)' : 'scale(1)' }}>
+                                    <p className="text-3xl font-bold text-white">{stage}</p>
+                                </div>
+                                
+                                <div className="mt-8">
+                                    {!isRunning ? (
+                                        <button onClick={startBreathing} className="btn btn-primary w-full">Start</button>
+                                    ) : (
+                                        <button onClick={stopBreathing} className="btn btn-secondary w-full">Stop</button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                };
+
+                const StreakCounter = () => (
+                    <div className="text-center p-6 md:p-8">
+                        <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 flex justify-center items-center space-x-2 md:space-x-4">
+                            <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
+                                <span>{String(timeElapsed.d).padStart(2, '0')}</span>
+                                <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Days</span>
+                            </div>
+                            <span className="text-gray-500">:</span>
+                            <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
+                                <span>{String(timeElapsed.h).padStart(2, '0')}</span>
+                                <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Hours</span>
+                            </div>
+                            <span className="text-gray-500">:</span>
+                            <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
+                                <span>{String(timeElapsed.m).padStart(2, '0')}</span>
+                                <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Minutes</span>
+                            </div>
+                            <div className="hidden md:flex items-center space-x-2 md:space-x-4">
+                                <span className="text-gray-500">:</span>
+                                <div className="flex flex-col items-center p-2 md:p-4 bg-gray-900 rounded-2xl w-24 md:w-32">
+                                    <span>{String(timeElapsed.s).padStart(2, '0')}</span>
+                                    <span className="text-sm md:text-base font-semibold text-gray-400 tracking-normal">Seconds</span>
+                                </div>
+                            </div>
+                        </h1>
+                        <p className="text-gray-400">Your current streak of self-mastery.</p>
+                    </div>
+                );
+
+                const DashboardView = () => (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="card"><StreakCounter /></div>
+                            <div className="card p-6">
+                                <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Target" className="w-5 h-5 mr-2 text-blue-500"/> Your "Why" - Your North Star</h3>
+                                <textarea value={yourWhy} onChange={handleWhyChange} className="w-full bg-gray-800 rounded-lg p-4 h-24 text-gray-300 focus:ring-2 focus:ring-blue-500 border-none"></textarea>
+                            </div>
+                            <div className="card p-6">
+                                <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="CheckSquare" className="w-5 h-5 mr-2 text-green-500"/> Today's Commitments</h3>
+                                <div className="space-y-3">
+                                    {commitments.map(c => (
+                                        <label key={c.id} className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${c.done ? 'bg-green-500/10 text-gray-400' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                                            <input type="checkbox" checked={c.done} onChange={() => handleCommitmentToggle(c.id)} className="w-5 h-5 mr-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500" />
+                                            <span className={`${c.done ? 'line-through' : ''}`}>{c.text}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-6">
+                            <div className="card p-6">
+                                <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Shield" className="w-5 h-5 mr-2 text-yellow-500"/> Urge-Surfer Toolkit</h3>
+                                <div className="space-y-3">
+                                    <button onClick={handleReframeUrge} disabled={isAiLoading} className="w-full text-left p-3 rounded-lg ai-btn transition-all">
+                                        <p className="font-semibold text-white">✨ Reframe My Urge</p>
+                                        <p className="text-sm text-indigo-200">Get instant help in a moment of weakness.</p>
+                                    </button>
+                                    <button onClick={() => setShowBreathingTool(true)} className="w-full text-left p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-all">
+                                        <p className="font-semibold text-white">Box Breathing Exercise</p>
+                                        <p className="text-sm text-gray-400">Calm your nervous system in 2 minutes.</p>
+                                    </button>
+                                    <div className="p-3 bg-gray-800 rounded-lg">
+                                        <p className="font-semibold text-white mb-2">Pattern Interrupts</p>
+                                        <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
+                                            <li>Take a cold shower</li>
+                                            <li>Go for a walk (no phone)</li>
+                                            <li>Do 20 push-ups</li>
+                                            <li>Call a trusted friend</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="card p-6">
+                                <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Sparkles" className="w-5 h-5 mr-2 text-purple-500"/> Daily Affirmation</h3>
+                                <textarea value={affirmation} onChange={handleAffirmationChange} className="w-full bg-gray-800 rounded-lg p-4 h-24 text-gray-300 focus:ring-2 focus:ring-blue-500 border-none"></textarea>
+                                <button onClick={handleGenerateAffirmation} disabled={isAiLoading} className="btn ai-btn w-full mt-2">
+                                    ✨ Generate New
+                                </button>
+                            </div>
+                            <div className="card p-6">
+                                <h3 className="font-bold text-xl text-white mb-4 flex items-center"><Icon name="Trophy" className="w-5 h-5 mr-2 text-orange-500"/> Achievements</h3>
+                                <Milestones currentDays={timeElapsed.d} />
+                            </div>
+                            <div className="card p-6 text-center">
+                                <h3 className="font-bold text-xl text-white mb-4">Feeling Overwhelmed?</h3>
+                                <p className="text-gray-400 mb-4">A reset is not a failure, it's a data point. Learn from it.</p>
+                                <button onClick={() => setShowResetConfirm(true)} className="btn btn-danger w-full">
+                                    <Icon name="RefreshCcw" className="inline w-5 h-5 mr-2"/>Reset My Streak
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+                
+                const TrackerView = () => {
+                    const [logData, setLogData] = useState({ trigger: 'Boredom', emotion: 'Anxious', strategy: '' });
+                    const [journalData, setJournalData] = useState({ challenge: '', victory: '', rating: 5 });
+
+                    const handleLogSubmit = (e) => {
+                        e.preventDefault();
+                        if (!logData.strategy) {
+                            setNotification({ message: 'Please enter a strategy for next time.', type: 'error' }); return;
+                        }
+                        addRelapseLog(logData);
+                        setLogData({ trigger: 'Boredom', emotion: 'Anxious', strategy: '' });
+                        setNotification({ message: 'Log added and streak reset.', type: 'success' });
+                    };
+
+                    const handleJournalSubmit = (e) => {
+                        e.preventDefault();
+                        if (!journalData.challenge && !journalData.victory) {
+                            setNotification({ message: 'Please fill out at least one journal field.', type: 'error' }); return;
+                        }
+                        addJournalEntry(journalData);
+                        setJournalData({ challenge: '', victory: '', rating: 5 });
+                        setNotification({ message: 'Journal entry saved.', type: 'success' });
+                    };
+                    
+                    const triggerAnalysis = useMemo(() => {
+                        if (relapseLogs.length === 0) return null;
+                        const counts = relapseLogs.reduce((acc, log) => {
+                            acc[log.trigger] = (acc[log.trigger] || 0) + 1;
+                            return acc;
+                        }, {});
+                        const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                        return { mostCommon: mostCommon[0], count: mostCommon[1], total: relapseLogs.length };
+                    }, [relapseLogs]);
+
+                    return (
+                        <div className="p-6 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-3xl font-bold text-white flex items-center"><Icon name="ClipboardList" className="w-8 h-8 mr-3 text-blue-500"/>Tracker & Journal</h2>
+                                <button onClick={handleAnalyzeJournal} disabled={isAiLoading || journalEntries.length < 2} className="btn ai-btn disabled:opacity-50 disabled:cursor-not-allowed">
+                                    ✨ Analyze My Journal
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="card p-6 space-y-4">
+                                    <h3 className="font-bold text-xl text-white flex items-center"><Icon name="BookX" className="w-5 h-5 mr-2 text-red-500"/>Relapse Log: Data, Not Defeat</h3>
+                                    <form onSubmit={handleLogSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">Trigger</label>
+                                            <select value={logData.trigger} onChange={e => setLogData({...logData, trigger: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500">
+                                                <option>Boredom</option><option>Stress</option><option>Loneliness</option><option>Social Media</option><option>Tiredness</option><option>Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">Emotional State Before</label>
+                                            <select value={logData.emotion} onChange={e => setLogData({...logData, emotion: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500">
+                                                <option>Anxious</option><option>Sad</option><option>Angry</option><option>Empty</option><option>Happy/Excited</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">What can I do differently next time?</label>
+                                            <textarea required value={logData.strategy} onChange={e => setLogData({...logData, strategy: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 h-20 border-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                        </div>
+                                        <button type="submit" className="btn btn-danger w-full">Log Relapse & Reset Streak</button>
+                                    </form>
+                                    {triggerAnalysis && (
+                                        <div className="bg-gray-800/50 p-4 rounded-lg mt-4">
+                                            <h4 className="font-semibold text-white flex items-center"><Icon name="PieChart" className="w-4 h-4 mr-2" />Insight</h4>
+                                            <p className="text-sm text-gray-400">Your most common trigger is <span className="font-bold text-yellow-400">{triggerAnalysis.mostCommon}</span>, occurring in {triggerAnalysis.count} of {triggerAnalysis.total} logged relapses.</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="card p-6 space-y-4">
+                                    <h3 className="font-bold text-xl text-white flex items-center"><Icon name="BookOpen" className="w-5 h-5 mr-2 text-green-500"/>Daily Journal</h3>
+                                    <form onSubmit={handleJournalSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">What was my biggest challenge today?</label>
+                                            <input type="text" value={journalData.challenge} onChange={e => setJournalData({...journalData, challenge: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">What was a small victory?</label>
+                                            <input type="text" value={journalData.victory} onChange={e => setJournalData({...journalData, victory: e.target.value})} className="w-full bg-gray-800 rounded-lg p-2 border-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">Energy & Focus (1-10): <span className="font-bold text-white">{journalData.rating}</span></label>
+                                            <input type="range" min="1" max="10" value={journalData.rating} onChange={e => setJournalData({...journalData, rating: e.target.value})} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+                                        </div>
+                                        <button type="submit" className="btn btn-primary w-full">Add Journal Entry</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="card p-6">
+                                    <h3 className="font-bold text-xl text-white mb-4">Log History</h3>
+                                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        {relapseLogs.length > 0 ? relapseLogs.map((log, i) => (
+                                            <div key={i} className="bg-gray-800 p-3 rounded-lg">
+                                                <p className="text-sm text-gray-500">{new Date(log.date).toLocaleString()}</p>
+                                                <p><span className="font-semibold">Trigger:</span> {log.trigger} | <span className="font-semibold">Emotion:</span> {log.emotion}</p>
+                                                <p className="text-sm text-gray-400 mt-1"><span className="font-semibold">Strategy:</span> {log.strategy}</p>
+                                            </div>
+                                        )) : <p className="text-gray-500">No logs yet.</p>}
+                                    </div>
+                                </div>
+                                <div className="card p-6">
+                                    <h3 className="font-bold text-xl text-white mb-4">Journal History</h3>
+                                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        {journalEntries.length > 0 ? journalEntries.map((entry, i) => (
+                                            <div key={i} className="bg-gray-800 p-3 rounded-lg">
+                                                <p className="text-sm text-gray-500">{new Date(entry.date).toLocaleString()}</p>
+                                                <p><span className="font-semibold">Challenge:</span> {entry.challenge}</p>
+                                                <p><span className="font-semibold">Victory:</span> {entry.victory}</p>
+                                                <p><span className="font-semibold">Rating:</span> {entry.rating}/10</p>
+                                            </div>
+                                        )) : <p className="text-gray-500">No entries yet.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                };
+                
+                const ArchitectView = () => (
+                    <div className="p-6 space-y-6">
+                        <h2 className="text-3xl font-bold text-white flex items-center"><Icon name="Construction" className="w-8 h-8 mr-3 text-yellow-500"/>Architect Hub</h2>
+                        <div className="card p-6">
+                            <p className="text-gray-400">This section is under construction. Future features will include a Habit Builder and Goal Setting module to help you proactively design your ideal life.</p>
+                        </div>
+                    </div>
+                );
+
+                const Milestones = ({ currentDays }) => {
+                    const milestones = [
+                        { day: 1, title: 'First Step', icon: 'Footprints' }, { day: 3, title: '3-Day Mark', icon: 'Mountain' },
+                        { day: 7, title: 'Week 1', icon: 'Calendar' }, { day: 14, title: '2 Weeks Strong', icon: 'Anchor' },
+                        { day: 30, title: '30 Days', icon: 'Medal' }, { day: 60, title: '60 Days', icon: 'Gem' },
+                        { day: 90, title: 'The Reboot', icon: 'Crown' },
+                    ];
+                    return (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 text-center">
+                            {milestones.map(m => {
+                                const unlocked = currentDays >= m.day;
+                                return (
+                                    <div key={m.day} className={`p-2 rounded-lg transition-all ${unlocked ? 'bg-orange-500/20' : 'bg-gray-800 opacity-60'}`}>
+                                        <Icon name={m.icon} className={`mx-auto w-8 h-8 mb-1 ${unlocked ? 'text-orange-400' : 'text-gray-500'}`} />
+                                        <p className={`text-xs font-semibold ${unlocked ? 'text-white' : 'text-gray-500'}`}>{m.title}</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                };
+
+                const SideNav = () => (
+                    <nav className="w-16 hover:w-56 bg-gray-900 text-white p-3 flex flex-col fixed h-full transition-all duration-300 ease-in-out group">
+                        <div className="flex items-center justify-center mb-8">
+                            <Icon name="Zap" className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                            <span className="text-xl font-bold ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">Momentum</span>
+                        </div>
+                        <ul className="space-y-3">
+                            <NavItem icon="LayoutDashboard" label="Dashboard" view="dashboard" />
+                            <NavItem icon="ClipboardList" label="Tracker" view="tracker" />
+                            <NavItem icon="Construction" label="Architect" view="architect" />
+                        </ul>
+                        <div className="mt-auto space-y-3">
+                            <NavItem icon="Database" label="Manage Data" onClick={() => setShowDataModal(true)} />
+                            <NavItem icon="HelpCircle" label="Disclaimer" onClick={() => setShowDisclaimer(true)} />
+                        </div>
+                    </nav>
+                );
+
+                const NavItem = ({ icon, label, view, onClick }) => (
+                    <li>
+                        <a href="#" onClick={(e) => { e.preventDefault(); onClick ? onClick() : setActiveView(view); }} 
+                        className={`flex items-center p-3 rounded-lg transition-colors ${activeView === view ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
+                            <Icon name={icon} className="w-6 h-6 flex-shrink-0" />
+                            <span className="ml-4 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">{label}</span>
+                        </a>
+                    </li>
+                );
+                
+                // --- Conditional Rendering Logic --- //
+
+                if (!isDataLoaded) {
+                    // Render nothing or a loading spinner until the data has been loaded from localStorage
+                    return <div className="fixed inset-0 bg-gray-900 flex items-center justify-center"><Icon name="Loader" className="animate-spin w-12 h-12 text-blue-500"/></div>;
+                }
+
+                // FIX: Only render the Onboarding Modal if it's supposed to be shown
+                if (showOnboarding) {
+                    return <OnboardingModal />;
+                }
+                
                 return (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 text-center">
-                        {milestones.map(m => {
-                            const unlocked = currentDays >= m.day;
-                            return (
-                                <div key={m.day} className={`p-2 rounded-lg transition-all ${unlocked ? 'bg-orange-500/20' : 'bg-gray-800 opacity-60'}`}>
-                                    <Icon name={m.icon} className={`mx-auto w-8 h-8 mb-1 ${unlocked ? 'text-orange-400' : 'text-gray-500'}`} />
-                                    <p className={`text-xs font-semibold ${unlocked ? 'text-white' : 'text-gray-500'}`}>{m.title}</p>
-                                </div>
-                            );
-                        })}
+                    <div className="flex">
+                        {notification && <NotificationModal message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
+                        {isAiLoading && <div className="fixed top-5 left-1/2 -translate-x-12 z-50 bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center"><Icon name="Loader" className="animate-spin w-5 h-5 mr-2" /><span>AI is thinking...</span></div>}
+                        {showResetConfirm && <ResetConfirmModal />}
+                        {showBreathingTool && <BreathingTool />}
+                        {showDataModal && <DataManagementModal />}
+                        {showDisclaimer && <DisclaimerModal />}
+                        {showAiModal.show && <AiModal title={showAiModal.title} content={showAiModal.content} onClose={() => setShowAiModal({ show: false, title: '', content: '' })} />}
+                        <SideNav />
+                        <main className="ml-16 flex-1 transition-all duration-300">
+                            {activeView === 'dashboard' && <DashboardView />}
+                            {activeView === 'tracker' && <TrackerView />}
+                            {activeView === 'architect' && <ArchitectView />}
+                        </main>
                     </div>
                 );
             };
-
-            const SideNav = () => (
-                 <nav className="w-16 hover:w-56 bg-gray-900 text-white p-3 flex flex-col fixed h-full transition-all duration-300 ease-in-out group">
-                    <div className="flex items-center justify-center mb-8">
-                        <Icon name="Zap" className="w-8 h-8 text-blue-500 flex-shrink-0" />
-                        <span className="text-xl font-bold ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">Momentum</span>
-                    </div>
-                    <ul className="space-y-3">
-                        <NavItem icon="LayoutDashboard" label="Dashboard" view="dashboard" />
-                        <NavItem icon="ClipboardList" label="Tracker" view="tracker" />
-                        <NavItem icon="Construction" label="Architect" view="architect" />
-                    </ul>
-                    <div className="mt-auto space-y-3">
-                        <NavItem icon="Database" label="Manage Data" onClick={() => setShowDataModal(true)} />
-                        <NavItem icon="HelpCircle" label="Disclaimer" onClick={() => setShowDisclaimer(true)} />
-                    </div>
-                </nav>
-            );
-
-            const NavItem = ({ icon, label, view, onClick }) => (
-                <li>
-                    <a href="#" onClick={(e) => { e.preventDefault(); onClick ? onClick() : setActiveView(view); }} 
-                       className={`flex items-center p-3 rounded-lg transition-colors ${activeView === view ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
-                        <Icon name={icon} className="w-6 h-6 flex-shrink-0" />
-                        <span className="ml-4 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">{label}</span>
-                    </a>
-                </li>
-            );
             
-            // --- Conditional Rendering Logic --- //
-
-            if (!isDataLoaded) {
-                // Render nothing or a loading spinner until the data has been loaded from localStorage
-                return <div className="fixed inset-0 bg-gray-900 flex items-center justify-center"><Icon name="Loader" className="animate-spin w-12 h-12 text-blue-500"/></div>;
-            }
-
-            // FIX: Only render the Onboarding Modal if it's supposed to be shown
-            if (showOnboarding) {
-                return <OnboardingModal />;
-            }
-            
-            return (
-                <div className="flex">
-                    {notification && <NotificationModal message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
-                    {isAiLoading && <div className="fixed top-5 left-1/2 -translate-x-12 z-50 bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center"><Icon name="Loader" className="animate-spin w-5 h-5 mr-2" /><span>AI is thinking...</span></div>}
-                    {showResetConfirm && <ResetConfirmModal />}
-                    {showBreathingTool && <BreathingTool />}
-                    {showDataModal && <DataManagementModal />}
-                    {showDisclaimer && <DisclaimerModal />}
-                    {showAiModal.show && <AiModal title={showAiModal.title} content={showAiModal.content} onClose={() => setShowAiModal({ show: false, title: '', content: '' })} />}
-                    <SideNav />
-                    <main className="ml-16 flex-1 transition-all duration-300">
-                        {activeView === 'dashboard' && <DashboardView />}
-                        {activeView === 'tracker' && <TrackerView />}
-                        {activeView === 'architect' && <ArchitectView />}
-                    </main>
-                </div>
-            );
-        };
-        
-        // --- Render the App --- //
-        ReactDOM.render(<App />, document.getElementById('root'));
+            // --- Render the App --- //
+            ReactDOM.render(<App />, document.getElementById('root'));
+        });
     </script>
 
 </body>
