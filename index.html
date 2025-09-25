@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project.LevelUp Dashboard</title>
     
+    <!-- PWA Manifest Link -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme Color for Browser UI -->
+    <meta name="theme-color" content="#0d1117">
+    
+    <!-- iOS Specific Meta Tags for PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LevelUp">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/0d1117/FFFFFF?text=L&font=inter">
+
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -337,6 +349,7 @@
                 // IMPROVEMENT: Hide on mobile (md breakpoint)
                 <nav className="hidden md:flex w-16 hover:w-56 bg-gray-900 text-white p-3 flex-col fixed h-screen transition-all duration-300 ease-in-out group z-10">
                     <div className="flex items-center justify-center group-hover:justify-start mb-8">
+                        {/* You can replace this src with your own logo URL */}
                         <img src="https://placehold.co/32x32/3b82f6/FFFFFF?text=L&font=inter" alt="Logo" className="w-8 h-8 rounded-md flex-shrink-0" />
                         <span className="text-xl font-bold ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">Project.LevelUp</span>
                     </div>
@@ -868,6 +881,21 @@
         };
         
         ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
