@@ -67,10 +67,34 @@
        .ai-btn {
              @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-400 hover:to-purple-500;
         }
-        /* REWRITTEN: Definitive inset styling for all input types */
-       .text-input, select, textarea  {
-            @apply w-full bg-[#0d1117] rounded-lg p-2 border-2 border-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 text-gray-200 appearance-none placeholder-gray-500 outline-none transition-colors duration-200;
+        
+        /* REWRITTEN WITH STANDARD CSS FOR RELIABILITY */
+        .text-input, select, textarea {
+            width: 100%;
+            background-color: #111827; /* Solid dark gray */
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid #4b5563; /* Gray border */
+            color: #e5e7eb; /* Light gray text */
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
+
+        .text-input::placeholder, 
+        textarea::placeholder {
+            color: #6b7280; /* Muted placeholder text */
+        }
+
+        .text-input:focus, 
+        select:focus, 
+        textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+
         select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
             background-position: right 0.5rem center;
@@ -350,7 +374,7 @@
                 <nav className="hidden md:flex w-16 hover:w-56 bg-gray-900 text-white p-3 flex-col fixed h-screen transition-all duration-300 ease-in-out group z-10">
                     <div className="flex items-center justify-center group-hover:justify-start mb-8">
                         {/* You can replace this src with your own logo URL */}
-                        <img src="https://placehold.co/32x32/3b82f6/FFFFFF?text=L&font=inter" alt="Logo" className="w-8 h-8 rounded-md flex-shrink-0" />
+                        <img src="https://i.ibb.co/fG0jvQqm/PLU-Logo.jpg" alt="Logo" className="w-8 h-8 rounded-md flex-shrink-0" />
                         <span className="text-xl font-bold ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">Project.LevelUp</span>
                     </div>
                     <ul className="space-y-3">
@@ -723,7 +747,7 @@
                     setNotification({ message: "Need at least 2 journal entries to analyze.", type: 'error' });
                     return;
                 }
-                const analysis = "Based on your recent entries, a pattern of overcoming challenges with resilience is emerging. Your victories, no matter how small, are building significant momentum.\n\nA helpful tip for today: Proactively schedule a 10-minute break for a positive activity you enjoy. This can be a powerful way to manage energy and maintain focus before challenges arise. Keep documenting your journey!";
+                const analysis = "Based on your recent entries, a pattern of overcoming challenges with resilience is emerging. Your victories, no matter how small, are building significant momentum.\n\nA helpful tip for today: Proactively schedule a 1-minute break for a positive activity you enjoy. This can be a powerful way to manage energy and maintain focus before challenges arise. Keep documenting your journey!";
                 simulateAiResponse(() => {
                     setShowAiModal({ show: true, title: "✨ Your Journal Analysis", content: analysis });
                 });
